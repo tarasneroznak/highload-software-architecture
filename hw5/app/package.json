@@ -1,0 +1,11 @@
+{
+  "name": "hw2",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "8.7.0",
+    "mongodb": "5.6.0",
+    "mongoose": "7.3.1"
+  }
+}

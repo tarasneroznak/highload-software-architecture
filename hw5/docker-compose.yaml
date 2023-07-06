@@ -1,0 +1,96 @@
+version: '3.9'
+
+volumes:
+  grafana_data: {}
+  influxdb_data: {}
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:1.25-alpine
+    volumes:
+      - ./nginx:/etc/nginx/conf.d
+    expose:
+      - 80
+    ports:
+      - 80:80
+    depends_on:
+      - api
+      - grafana
+    networks:
+      - backend
+
+  api:
+    container_name: api
+    hostname: api
+    image: node:alpine
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      PORT: 8081
+      HOSTNAME: api
+    working_dir: /home/app
+    restart: always
+    volumes:
+      - ./app:/home/app
+    depends_on:
+      - mongo
+    command: [ "node", "server" ]
+    networks:
+      - backend
+
+  grafana:
+    hostname: grafana
+    container_name: grafana
+    image: grafana/grafana:8.0.2
+    env_file: configuration.env
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    networks:
+      - backend
+
+  mongo:
+    container_name: mongo
+    image: mongo:6.0
+    restart: always
+    networks:
+      - backend
+
+  telegraf:
+    hostname: telegraf
+    container_name: telegraf
+    image: telegraf:1.18-alpine
+    platform: linux/amd64
+    user: root:0
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/rootfs/proc:ro
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    networks:
+      - backend
+
+  influxdb:
+    hostname: influxdb
+    container_name: influxdb
+    image: influxdb:1.8-alpine
+    platform: linux/amd64
+    env_file: configuration.env
+    volumes:
+      - ./:/imports
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - backend
