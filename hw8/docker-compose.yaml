@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+  cache_nginx:
+    container_name: cache_nginx
+    build:
+      context: ./cache-nginx
+      dockerfile: Dockerfile
+    expose:
+      - 8000
+    ports:
+      - 8000:80
+
+  cache_openresty:
+    container_name: cache_openresty
+    image: bitnami/openresty
+    volumes:
+      - ./cache-openresty:/opt/bitnami/openresty/nginx/conf
+    expose:
+      - 8001
+    ports:
+      - 8001:80
+
+  object_storage:
+    container_name: object_storage
+    image: nginx:1.25-alpine
+    volumes:
+      - ./object-storage/nginx:/etc/nginx/conf.d
+      - ./object-storage/assets:/var/www/
