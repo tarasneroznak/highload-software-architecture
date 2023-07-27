@@ -1,0 +1,67 @@
+version: '3.9'
+
+volumes:
+  grafana_data: {}
+  influxdb_data: {}
+  db_data: {}
+
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_INIT_COMMAND: "SET GLOBAL innodb_flush_log_at_trx_commit=1;"
+    expose:
+      - 3306
+    ports:
+      - 3306:3306
+    # volumes:
+    #   - db_data:/var/lib/mysql
+
+  # 
+  grafana:
+    hostname: grafana
+    container_name: grafana
+    image: grafana/grafana:8.0.2
+    env_file: configuration.env
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+
+  telegraf:
+    hostname: telegraf
+    container_name: telegraf
+    image: telegraf:1.18-alpine
+    platform: linux/amd64
+    user: root
+    entrypoint: /bin/bash -c "chmod 666 /var/run/docker.sock && /entrypoint.sh telegraf"
+    volumes:
+      - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/rootfs/proc:ro
+    depends_on:
+      - db
+    links:
+      - influxdb
+
+  influxdb:
+    hostname: influxdb
+    container_name: influxdb
+    image: influxdb:1.8-alpine
+    platform: linux/amd64
+    env_file: configuration.env
+    volumes:
+      - ./:/imports
+      - influxdb_data:/var/lib/influxdb

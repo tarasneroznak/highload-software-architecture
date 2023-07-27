@@ -1,0 +1,15 @@
+{
+  "name": "hw9",
+  "version": "1.0.0",
+  "description": "",
+  "main": "benchmark.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "8.0.2",
+    "knex": "2.5.1",
+    "mysql": "2.18.1",
+    "pg": "^8.11.1"
+  }
+}
