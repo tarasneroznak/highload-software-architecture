@@ -1,0 +1,14 @@
+{
+  "name": "hw11",
+  "version": "1.0.0",
+  "description": "Create ES index that will serve autocomplete needs with leveraging typos and errors (max 3 typos if word length is bigger than 7).",
+  "main": "isert-data.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.9.0"
+  }
+}
