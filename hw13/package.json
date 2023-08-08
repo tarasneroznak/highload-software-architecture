@@ -1,0 +1,13 @@
+{
+  "name": "hw13",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "beanstalkd": "^2.2.5",
+    "redis": "^4.6.7"
+  }
+}

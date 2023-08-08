@@ -1,0 +1,81 @@
+version: '3.9'
+
+volumes:
+  grafana_data: {}
+  influxdb_data: {}
+
+services:
+  redis_rdb:
+    image: redis:7.0.12-alpine
+    volumes:
+      - ./redis/redis_rdb.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+    entrypoint: "redis-server /usr/local/etc/redis/redis.conf"
+
+  redis_aof:
+    image: redis:7.0.12-alpine
+    volumes:
+      - ./redis/redis_aof.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6380:6380
+    entrypoint: "redis-server /usr/local/etc/redis/redis.conf"
+
+  beanstalkd:
+    image: schickling/beanstalkd
+    platform: linux/amd64
+    ports:
+      - 11300:11300
+
+  beanstalk_console:
+    image: agaveapi/beanstalkd-console
+    platform: linux/amd64
+    environment:
+      - BEANSTALKD_HOST=beanstalkd
+      - BEANSTALKD_PORT=11300
+    ports:
+      - 80:80
+
+  # 
+  grafana:
+    hostname: grafana
+    container_name: grafana
+    image: grafana/grafana:8.0.2
+    env_file: ./grafana/configuration.env
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+
+  telegraf:
+    hostname: telegraf
+    container_name: telegraf
+    image: telegraf:1.18-alpine
+    platform: linux/amd64
+    user: root
+    entrypoint: /bin/bash -c "chmod 666 /var/run/docker.sock && /entrypoint.sh telegraf"
+    volumes:
+      - ./telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/rootfs/proc:ro
+    links:
+      - influxdb
+
+  influxdb:
+    hostname: influxdb
+    container_name: influxdb
+    image: influxdb:1.8-alpine
+    platform: linux/amd64
+    env_file: ./influx/configuration.env
+    volumes:
+      - ./:/imports
+      - influxdb_data:/var/lib/influxdb
