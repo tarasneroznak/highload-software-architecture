@@ -1,0 +1,15 @@
+{
+  "name": "hw13",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"node write-to-master.js\" \"node read-from-slave.js\""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.0",
+    "redis": "4.6.7"
+  }
+}

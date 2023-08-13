@@ -1,0 +1,107 @@
+version: '3.9'
+
+volumes:
+  grafana_data: {}
+
+services:
+  elb:
+    image: haproxy:2.8.1-alpine
+    ports:
+      - 6370:6370
+      - 6371:6371
+    volumes:
+      - ./haproxy:/usr/local/etc/haproxy
+    links:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+  
+  redis-sentinel1:
+    image: redis:7.0.12-alpine
+    container_name: redis-sentinel1
+    ports:
+      - 26379:26379
+    command: redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./redis/sentinel1.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+
+  redis-sentinel2:
+    image: redis:7.0.12-alpine
+    container_name: redis-sentinel2
+    ports:
+      - 26380:26380
+    command: redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./redis/sentinel2.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+
+  redis-sentinel3:
+    image: redis:7.0.12-alpine
+    container_name: redis-sentinel3
+    ports:
+      - 26381:26381
+    command: redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./redis/sentinel3.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+
+  redis-master:
+    image: redis:7.0.12-alpine
+    container_name: redis-master
+    ports:
+      - 6380:6380
+    volumes:
+      - ./data/master:/data
+      - ./redis/redis-master.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+
+  redis-slave1:
+    image: redis:7.0.12-alpine
+    container_name: redis-slave1
+    ports:
+      - 6381:6381
+    volumes:
+      - ./data/slave1:/data
+      - ./redis/redis-slave1.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+    depends_on:
+      - redis-master
+
+  redis-slave2:
+    image: redis:7.0.12-alpine
+    container_name: redis-slave2
+    ports:
+      - 6382:6382
+    volumes:
+      - ./data/slave2:/data
+      - ./redis/redis-slave2.conf:/etc/redis/redis.conf
+    command: redis-server /etc/redis/redis.conf
+    depends_on:
+      - redis-master
+#
+  grafana:
+    hostname: grafana
+    container_name: grafana
+    image: grafana/grafana:8.0.2
+    env_file: ./grafana/configuration.env
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
