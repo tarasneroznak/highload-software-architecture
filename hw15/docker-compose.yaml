@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  ngrok:
+    image: wernight/ngrok
+    ports:
+      - 4040:4040
+    env_file:
+      - .env
+    environment:
+      NGROK_PROTOCOL: http
+      NGROK_PORT: lb:80
+      NGROK_REGION: eu
+      NGROK_DEBUG: true
+    depends_on:
+      - lb
+    links:
+      - lb
+
+  lb:
+    build:
+      context: ./lb
+      dockerfile: Dockerfile
+    volumes:
+      - ./lb/nginx.conf:/usr/local/nginx/conf/nginx.conf
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    expose:
+      - 80
+    ports:
+      - 80:80
+
+  rest_nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./servers/rest.conf:/etc/nginx/conf.d/default.conf
+  
+  uk_nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./servers/uk.conf:/etc/nginx/conf.d/default.conf
+
+  us_nginx_1:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./servers/us1.conf:/etc/nginx/conf.d/default.conf
+
+  us_nginx_2:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./servers/us2.conf:/etc/nginx/conf.d/default.conf
+  
+  backup_nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./servers/backup.conf:/etc/nginx/conf.d/default.conf
