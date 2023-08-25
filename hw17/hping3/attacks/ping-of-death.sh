@@ -1,0 +1,1 @@
+fping -b 70000 ${TARGET_URL}
