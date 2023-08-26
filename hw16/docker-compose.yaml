@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql:/etc/mysql/conf.d
+      - ./data/mysql/log:/var/log/mysql
+    environment:
+      MYSQL_DATABASE: example
+      MYSQL_ROOT_PASSWORD: example
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.12
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.12
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+
+  filebeat-elastic:
+    image: docker.elastic.co/beats/filebeat:7.17.12
+    volumes:
+      - ./filebeat/filebeat.elastic.yml:/usr/share/filebeat/filebeat.yml
+      - ./data/mysql/log:/var/log/mysql
+    user: root
+    command: filebeat -strict.perms=false
+  
+  filebeat-graylog:
+    image: docker.elastic.co/beats/filebeat:7.17.12
+    volumes:
+      - ./filebeat/filebeat.graylog.yml:/usr/share/filebeat/filebeat.yml
+      - ./data/mysql/log:/var/log/mysql
+    user: root
+    command: filebeat -strict.perms=false
+
+  graylog:
+    image: graylog/graylog:5.1.4
+    ports:
+      - 9000:9000
+      - 5044:5044
+      - 1514:1514
+      - 1514:1514/udp
+      - 12201:12201
+      - 12201:12201/udp
+    environment:
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - 27017:27017
+
+  # monitor
+  grafana:
+    hostname: grafana
+    container_name: grafana
+    image: grafana/grafana:8.0.2
+    env_file: ./grafana/configuration.env
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+
+  telegraf:
+    hostname: telegraf
+    container_name: telegraf
+    image: telegraf:1.18-alpine
+    platform: linux/amd64
+    user: root
+    entrypoint: /bin/bash -c "chmod 666 /var/run/docker.sock && /entrypoint.sh telegraf"
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/rootfs/proc:ro
+    links:
+      - influxdb
+
+  influxdb:
+    hostname: influxdb
+    container_name: influxdb
+    image: influxdb:1.8-alpine
+    platform: linux/amd64
+    env_file: ./influxdb/configuration.env
+    volumes:
+      - ./:/imports
