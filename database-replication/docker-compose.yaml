@@ -1,0 +1,48 @@
+version: '3.9'
+
+networks:
+  overlay:
+
+services:
+  mysql_master:
+    container_name: mysql_master
+    image: mysql:8.0
+    env_file:
+      - ./config/master/master.env
+    ports:
+      - 3306:3306
+    volumes:
+      - ./config/master/master.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./data/master:/var/log/mysql
+    networks:
+      - overlay
+
+  mysql_slave1:
+    container_name: mysql_slave1
+    image: mysql:8.0
+    env_file:
+      - ./config/slave1/slave.env
+    ports:
+      - 4406:3306
+    volumes:
+      - ./config/slave1/slave.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./data/slave1:/var/log/mysql
+    depends_on:
+      - mysql_master
+    networks:
+      - overlay
+
+  mysql_slave2:
+    container_name: mysql_slave2
+    image: mysql:8.0
+    env_file:
+      - ./config/slave2/slave.env
+    ports:
+      - 5506:3306
+    volumes:
+      - ./config/slave2/slave.cnf:/etc/mysql/conf.d/mysql.conf.cnf
+      - ./data/slave2:/var/log/mysql
+    depends_on:
+      - mysql_master
+    networks:
+      - overlay
