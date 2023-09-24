@@ -1,0 +1,122 @@
+version: "3.9"
+
+volumes:
+  healthcheck-volume:
+
+services:
+  # default
+  postgres:
+    container_name: postgres
+    image: postgres:15.3
+    ports:
+      - 4432:5432
+    volumes:
+      - ./sql/postgres.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  # fwd
+  postgres_b:
+    container_name: postgres_b
+    image: postgres:15.3
+    ports:
+      - 5432:5432
+    volumes:
+      - ./sql/postgres-b.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    depends_on:
+      - postgres_b1
+      - postgres_b2
+
+  postgres_b1:
+    container_name: postgres_b1
+    image: postgres:15.3
+    ports:
+      - 6432:5432
+    volumes:
+      - ./sql/postgres-b1.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  postgres_b2:
+    container_name: postgres_b2
+    image: postgres:15.3
+    ports:
+      - 7432:5432
+    volumes:
+      - ./sql/postgres-b2.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+
+  # citus
+  master:
+    container_name: "citus_master"
+    image: "citusdata/citus:12.0.0"
+    ports: 
+      - 8432:5432
+    labels: ["com.citusdata.role=Master"]
+    volumes:
+      - ./sql/citus.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  worker1:
+    container_name: "citus_worker1"
+    image: "citusdata/citus:12.0.0"
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [manager]
+    command: "/wait-for-manager.sh"
+    ports: 
+      - 9432:5432
+    volumes:
+      - healthcheck-volume:/healthcheck
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+      
+  worker2:
+    container_name: "citus_worker2"
+    image: "citusdata/citus:12.0.0"
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [manager]
+    command: "/wait-for-manager.sh"
+    ports: 
+      - 10432:5432
+    volumes:
+      - healthcheck-volume:/healthcheck
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  manager:
+    container_name: "citus_manager"
+    image: "citusdata/membership-manager:0.3.0"
+    volumes:
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
+      - healthcheck-volume:/healthcheck
+    depends_on: [master]
