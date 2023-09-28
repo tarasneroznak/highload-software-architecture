@@ -1,15 +1,74 @@
 version: "3.9"
 
 services:
-  postgres:
-    container_name: postgres
-    image: postgres:15.3
+  postgres1:
+    container_name: postgres1
+    build:
+      context: ./pg
     ports:
-      - 5432:5432
+      - 6432:5432
+    user: postgres
     volumes:
+      - ./pgbackrest:/etc/pgbackrest
+      - ./pg-config/postgresql-full.conf:/etc/postgresql/postgresql.conf
+      - ./data/p1:/b
       - ./sql/postgres.sql:/main.sql
       - ./sql/random-data.sql:/data.sql
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_HOST_AUTH_METHOD: trust
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+  
+  postgres2:
+    container_name: postgres2
+    build:
+      context: ./pg
+    ports:
+      - 7432:5432
+    user: postgres
+    volumes:
+      - ./pgbackrest:/etc/pgbackrest
+      - ./pg-config/postgresql-incremental.conf:/etc/postgresql/postgresql.conf
+      - ./data/p2:/b
+      - ./sql/postgres.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  postgres3:
+    container_name: postgres3
+    build:
+      context: ./pg
+    ports:
+      - 8432:5432
+    user: postgres
+    volumes:
+      - ./pgbackrest:/etc/pgbackrest
+      - ./pg-config/postgresql-differential.conf:/etc/postgresql/postgresql.conf
+      - ./data/p3:/b
+      - ./sql/postgres.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  postgres-cdp:
+    container_name: postgres-cdp
+    image: postgres:15.3
+    ports:
+      - 5432:5432
+    volumes:
+      - ./pg-config/postgresql-cdp.conf:/etc/postgresql/postgresql.conf
+      - ./sql/postgres.sql:/main.sql
+      - ./sql/random-data.sql:/data.sql
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf

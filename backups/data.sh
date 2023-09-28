@@ -1,0 +1,21 @@
+#!/bin/bash
+
+docker exec postgres1 psql -U postgres -f "/data.sql"
+docker exec postgres1 psql -U postgres -f "/main.sql"
+docker exec postgres2 psql -U postgres -f "/data.sql"
+docker exec postgres2 psql -U postgres -f "/main.sql"
+docker exec postgres3 psql -U postgres -f "/data.sql"
+docker exec postgres3 psql -U postgres -f "/main.sql"
+docker exec postgres-cdp psql -U postgres -f "/data.sql"
+docker exec postgres-cdp psql -U postgres -f "/main.sql"
+
+echo "insert - 100000"
+docker exec postgres1 psql -U postgres -d postgres -c "call insert_random_books(100000);"
+docker exec postgres2 psql -U postgres -d postgres -c "call insert_random_books(100000);"
+docker exec postgres3 psql -U postgres -d postgres -c "call insert_random_books(100000);"
+docker exec postgres-cdp psql -U postgres -d postgres -c "call insert_random_books(100000);"
+echo "size"
+docker exec postgres1 psql -U postgres -d postgres -c "select pg_size_pretty(pg_database_size('postgres'));"
+docker exec postgres2 psql -U postgres -d postgres -c "select pg_size_pretty(pg_database_size('postgres'));"
+docker exec postgres3 psql -U postgres -d postgres -c "select pg_size_pretty(pg_database_size('postgres'));"
+docker exec postgres-cdp psql -U postgres -d postgres -c "select pg_size_pretty(pg_database_size('postgres'));"

@@ -1,28 +1,31 @@
 #!/bin/bash
 
-docker-compose down -v
-docker-compose up -d
+docker exec postgres1 psql -U postgres -d postgres -c "show archive_mode"
+docker exec postgres2 psql -U postgres -d postgres -c "show archive_mode"
+docker exec postgres3 psql -U postgres -d postgres -c "show archive_mode"
 
-sleep 5
+echo "create stanza"
+docker exec postgres1 pgbackrest --stanza=full stanza-create
+docker exec postgres2 pgbackrest --stanza=incremental stanza-create
+docker exec postgres3 pgbackrest --stanza=differential stanza-create
 
-docker exec postgres psql -U postgres -f "/data.sql"
-docker exec postgres psql -U postgres -f "/main.sql"
+echo "backup full"
+docker exec postgres1 pgbackrest backup --stanza=full --type=full
+echo "backup incremental"
+docker exec postgres2 pgbackrest backup --stanza=incremental --type=incr
+echo "backup differential"
+docker exec postgres3 pgbackrest backup --stanza=differential --type=diff
 
-echo "insert - 1000000"
-docker exec postgres psql -U postgres -d postgres -c "call insert_random_books(100000);"
-echo "size"
-docker exec postgres psql -U postgres -d postgres -c "select pg_size_pretty(pg_database_size('postgres'));"
+sleep 10
 
-# Full
-echo "Full"
-full_backup_file="/full_backup.sql"
-docker exec postgres pg_dump -U postgres -d postgres -f /full_backup.sql
+echo "insert - 100000"
+docker exec postgres1 psql -U postgres -d postgres -c "call insert_random_books(100000);"
+docker exec postgres2 psql -U postgres -d postgres -c "call insert_random_books(100000);"
+docker exec postgres3 psql -U postgres -d postgres -c "call insert_random_books(100000);"
 
-# Incremental
-echo "Incremental"
-docker exec postgres psql -U postgres -d postgres -c "call insert_random_books(10000);"
-
-timestamp=$(date +"%Y%m%d%H%M%S")
-incremental_backup_file="/incremental_$timestamp.sql"
-echo $timestamp
-docker exec postgres pg_dump -U postgres -d postgres --file="$incremental_backup_file" --format=c --no-password --data-only --file="$full_backup_file"
+echo "backup2 full"
+docker exec postgres1 pgbackrest backup --stanza=full --type=full
+echo "backup2 incremental"
+docker exec postgres2 pgbackrest backup --stanza=incremental --type=incr
+echo "backup2 differential"
+docker exec postgres3 pgbackrest backup --stanza=differential --type=diff
