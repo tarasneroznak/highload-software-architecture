@@ -5,3 +5,4 @@ GeoIP.conf
 .terraform
 *.tfstate
 *.tfstate.*
+builds
